@@ -1,0 +1,4 @@
+channel: root
+samplerate: 48000
+bitrate: 32000
+database_path: droidbot.data
