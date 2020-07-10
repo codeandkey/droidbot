@@ -14,12 +14,10 @@ class Bot
 
         puts "Initializing tables."
 
-        @db.execute "CREATE TABLE IF NOT EXISTS links ( id INT PRIMARY KEY, author TEXT NOT NULL, timestamp"
-
         @db.execute %{
             CREATE TABLE IF NOT EXISTS links (
                 author TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
+                timestamp DATETIME NOT NULL
             )
         }
 
@@ -27,7 +25,7 @@ class Bot
             CREATE TABLE IF NOT EXISTS sounds (
                 soundname TEXT NOT NULL UNIQUE,
                 author TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
+                timestamp DATETIME NOT NULL
             )
         }
 
@@ -36,9 +34,11 @@ class Bot
                 commandname TEXT NOT NULL UNIQUE,
                 soundname TEXT NOT NULL,
                 author TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
+                timestamp DATETIME NOT NULL
             )
         }
+
+        puts "Tables ready."
 
         @conn = Mumble::Client.new(Settings.host) do |conf|
             conf.username = Settings.name
@@ -67,9 +67,29 @@ class Bot
     end
 
     def on_text_message(msg)
-      printf "%s: %s\n", @conn.users[msg.actor].name, msg.message
+      sender = @conn.users[msg.actor].name
+
+      # Strip noise from the message and extract plaintext.
+      msg.message = msg.message.chomp.sub /<[^>]*>/, ''
+
+      if msg.message.start_with? '!'
+        args = msg.message.split ' '
+        args[0].slice!(0)
+
+        methname = "handle_" + args[0]
+
+        if self.respond_to? methname
+          self.send(methname, args, sender)
+        else
+          @conn.text_user(sender, 'Unknown command %s.' % [args[0]])
+        end
+      end
     end
 
     def on_user_state(state)
+    end
+
+    def handle_ping(args, sender)
+      @conn.text_user(sender, "Pong!")
     end
 end
