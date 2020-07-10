@@ -14,6 +14,18 @@ Commands: <br>
     <th>Description</th>
   </tr>
   <tr>
+    <td>!alias</td>
+    <td>Create a command alias.</td>
+  </tr>
+  <tr>
+    <td>!aliases</td>
+    <td>List existing aliases.</td>
+  </tr>
+  <tr>
+    <td>!delalias</td>
+    <td>Delete an alias.</td>
+  </tr>
+  <tr>
     <td>!grab</td>
     <td>Create a soundclip from a part of a video.</td>
   </tr>
@@ -202,6 +214,15 @@ class Bot
       end
 
       @conn.text_user(sender, resp + "</table>")
+    end
+
+    def handle_delalias(args, sender)
+      if args.length != 2
+        @conn.text_user("usage: %s <alias>" % [args[0]])
+        return
+      end
+
+      p @db.execute "DELETE FROM aliases WHERE commandname=?", args[1]
     end
 
     def handle_help(args, sender)
