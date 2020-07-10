@@ -218,12 +218,14 @@ class Bot
     end
 
     def handle_play(args, sender)
-      to_play = @db.execute("SELECT soundname FROM sounds ORDER BY RANDOM() LIMIT 1")[0][0]
+      to_play = @db.execute("SELECT soundname FROM sounds ORDER BY RANDOM() LIMIT 1")
 
       if to_play.length == 0
         @conn.text_user(sender, "No sounds to play!")
         return
       end
+
+      to_play = to_play[0][0]
 
       if args.length >= 2
         to_play = args[1]
@@ -249,7 +251,7 @@ class Bot
       res = @db.execute "SELECT rowid, * FROM links ORDER BY RANDOM() LIMIT 1"
 
       if res.length == 0
-        @conn.msg_user(sender, "No links to choose from!")
+        @conn.text_user(sender, "No links to choose from!")
         return
       end
 
@@ -262,7 +264,7 @@ class Bot
         "Nice.",
       ].sample
 
-      @conn.text_channel(Settings.channel, "%d: <a href=\"%s\">%s</a>" % [id, dest, link_text])
+      @conn.text_channel(Settings.channel, '%d: <a href="%s">%s</a>' % [id, dest, link_text])
     end
 
     def handle_aliases(args, sender)
