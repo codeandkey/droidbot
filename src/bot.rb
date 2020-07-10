@@ -163,7 +163,7 @@ class Bot
     end
 
     def on_user_state(state)
-      self.handle_play 'self', ['!play']
+      self.handle_play ['!play'], 'self'
     end
 
     def create_alias(commandname, targetname, author)
@@ -245,8 +245,10 @@ class Bot
         to_play = args[1]
       end
 
+      printf "Attempting to play %s..\n", to_play
+
       # Try and locate the sound in the mpd playlist.
-      results = @mpd.where({file: "#{to_play}.mp3"})
+      results = @mpd.where({filename: "#{to_play}.mp3"})
 
       if results.length == 1
         @last_played = to_play
@@ -326,6 +328,9 @@ class Bot
       end
 
       @db.execute "DELETE FROM sounds WHERE soundname=?", args[1]
+      File.delete("sounds/#{args[1]}.mp3")
+      @mpd.update
+
       @conn.text_user(sender, "Deleted sound %s." % [args[1]])
     end
 
