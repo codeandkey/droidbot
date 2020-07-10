@@ -27,6 +27,10 @@ Commands: <br>
     <td>Delete an alias.</td>
   </tr>
   <tr>
+    <td>!delsound</td>
+    <td>Delete an sound.</td>
+  </tr>
+  <tr>
     <td>!grab</td>
     <td>Create a soundclip from a part of a video.</td>
   </tr>
@@ -37,6 +41,10 @@ Commands: <br>
   <tr>
     <td>!ping</td>
     <td>Basic ping test. Responds with "Pong!"</td>
+  </tr>
+  <tr>
+    <td>!play</td>
+    <td>Play a random or named sound clip.</td>
   </tr>
   <tr>
     <td>!stats</td>
