@@ -5,6 +5,7 @@
 require "uri"
 require "mumble-ruby"
 require "sqlite3"
+require "ruby-mpd"
 
 $help_text = %{
 Commands: <br>
@@ -48,8 +49,14 @@ class Bot
     def initialize()
         puts "Initializing bot."
 
-        printf "Connecting to database: %s\n", Settings.database_path
+        printf "Connecting to MPD at %s:%d\n", Settings.mpd_host, Settings.mpd_port
+        @mpd = MPD.new Settings.mpd_host, Settings.mpd_port
+        @mpd.connect
+        puts "Connected to MPD."
+
+        printf "Connecting to database at %s\n", Settings.database_path
         @db = SQLite3::Database.new Settings.database_path
+        puts "Connected to database."
 
         puts "Initializing tables."
 
@@ -94,12 +101,13 @@ class Bot
             @conn.join_channel(Settings.channel)
             printf "Joined channel %s.\n", Settings.channel
 
-#            @conn.player.stream_named_pipe(Settings.pipe)
-#            printf "Streaming audio from %s.\n", Settings.pipe
-
             @conn.on_text_message do |msg| self.on_text_message msg end
             @conn.on_user_state do |state| self.on_user_state state end
             puts "Initialized callbacks."
+
+            puts "Starting audio stream.."
+            @conn.player.stream_named_pipe("mpd.fifo")
+            puts "Started audio stream."
         end
 
         printf "Connecting to %s.\n", Settings.host
@@ -129,7 +137,7 @@ class Bot
             else
               msg.message = matches[0][0]
               puts 'Executing alias: %s => %s' % [args[0], msg.message]
-              return self.on_text_message(msg, alias_depth + 1)
+              return self.on_text_message msg, alias_depth + 1
             end
           end
         end
@@ -145,6 +153,7 @@ class Bot
     end
 
     def on_user_state(state)
+      self.handle_play 'self', ['!play']
     end
 
     def create_alias(commandname, targetname, author)
@@ -166,7 +175,9 @@ class Bot
         return
       end
 
-      if self.create_alias args[1], args[2], sender
+      action = args[2..].join ' '
+
+      if self.create_alias args[1], action, sender
         @conn.text_user(sender, "Created alias \"%s\" => \"%s\"." % [args[1], args[2]])
       else
         @conn.text_user(sender, "Alias \"%s\" already exists!" % [args[1]])
@@ -182,12 +193,56 @@ class Bot
       @conn.text_user(sender, "Stats:<br>Total links: %d<br>Total sounds: %d<br>" % [total_links, total_sounds])
     end
 
-    def handle_grab(args, sender)
+    def handle_get(args, sender)
       if args.length != 4
         return @conn.text_user(sender, "usage: !%s [url] [start] [length]" % [args[0]])
       end
 
-      @conn.text_user(sender, "grab not implemented yet.")
+      targetname = SecureRandom.hex[0..11]
+      result = system("scripts/grab_yt.sh \"#{args[1]}\" \"#{args[2]}\" \"#{args[3]}\" \"#{targetname}\"")
+
+      if result
+        # Sound downloaded OK, so insert the new entry into the db.
+        @db.execute "INSERT INTO sounds VALUES (?, ?, datetime('now'))", [targetname, sender]
+
+        # Update mpd database as well.
+        @mpd.update
+
+        @conn.text_user(sender, "Grabbed video with new ID #{targetname}")
+
+        # Play the new sound.
+        self.handle_play(["!play", targetname], sender)
+      else
+        @conn.text_user(sender, "Error occurred during grab.")
+      end
+    end
+
+    def handle_play(args, sender)
+      to_play = @db.execute("SELECT soundname FROM sounds ORDER BY RANDOM() LIMIT 1")[0][0]
+
+      if to_play.length == 0
+        @conn.text_user(sender, "No sounds to play!")
+        return
+      end
+
+      if args.length >= 2
+        to_play = args[1]
+      end
+
+      # Try and locate the sound in the mpd playlist.
+      results = @mpd.where({file: "#{to_play}.mp3"})
+
+      if results.length == 1
+        @mpd.clear
+        @mpd.add results[0]
+        @mpd.play
+      else
+        if results.length > 1
+          puts "warning: #{results.length} results for MPD search for #{to_play}"
+        end
+
+        @conn.text_user(sender, "#{to_play} not found.")
+      end
     end
 
     def handle_link(args, sender)
@@ -215,6 +270,16 @@ class Bot
 
       @db.execute("SELECT * FROM aliases ORDER BY commandname") do |row|
         resp = resp + "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % row
+      end
+
+      @conn.text_user(sender, resp + "</table>")
+    end
+
+    def handle_sounds(args, sender)
+      resp = "Sounds:<br><table><tr><th>ID</th><th>Author</th><th>Created</th></tr>"
+
+      @db.execute("SELECT * FROM sounds ORDER BY timestamp") do |row|
+        resp = resp + "<tr><td>%s</td><td>%s</td><td>%s</td></tr>" % row
       end
 
       @conn.text_user(sender, resp + "</table>")

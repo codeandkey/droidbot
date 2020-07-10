@@ -2,3 +2,5 @@ channel: root
 samplerate: 48000
 bitrate: 32000
 database_path: droidbot.data
+mpd_host: localhost
+mpd_port: 6600

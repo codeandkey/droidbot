@@ -2,3 +2,9 @@ Gemfile.lock
 droidbot.data
 certs
 config.yml
+mpd.pid
+mpd.fifo
+mpd.db
+mpd.conf
+mpdstate
+sounds/*
