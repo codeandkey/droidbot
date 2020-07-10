@@ -1,0 +1,5 @@
+source 'https://rubygems.org/'
+gem 'config', '~> 2.2.1'
+gem 'mumble-ruby', '~> 1.1.3'
+gem 'mysql2', '~> 0.5.2'
+gem 'sqlite3'
