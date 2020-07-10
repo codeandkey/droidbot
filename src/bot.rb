@@ -189,7 +189,7 @@ class Bot
         return
       end
 
-      action = args[2..].join ' '
+      action = args[2..-1].join ' '
 
       if self.create_alias args[1], action, sender
         @conn.text_user(sender, "Created alias \"%s\" => \"%s\"." % [args[1], args[2]])
