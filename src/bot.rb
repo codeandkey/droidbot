@@ -162,7 +162,7 @@ class Bot
 
     def handle_alias(args, sender)
       if args.length < 3
-        @conn.text_user(sender, "usage: %s <alias> <action>" % [args[0]])
+        @conn.text_user(sender, "usage: %s [alias] [action]" % [args[0]])
         return
       end
 
@@ -184,7 +184,7 @@ class Bot
 
     def handle_grab(args, sender)
       if args.length != 4
-        return @conn.text_user(sender, "usage: !%s <url> <start> <length>" % [args[0]])
+        return @conn.text_user(sender, "usage: !%s [url] [start] [length]" % [args[0]])
       end
 
       @conn.text_user(sender, "grab not implemented yet.")
@@ -222,7 +222,7 @@ class Bot
 
     def handle_delalias(args, sender)
       if args.length != 2
-        @conn.text_user("usage: %s <alias>" % [args[0]])
+        @conn.text_user("usage: %s [alias]" % [args[0]])
         return
       end
 
