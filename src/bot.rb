@@ -106,7 +106,7 @@ class Bot
         @conn.connect
     end
 
-    def on_text_message(msg, in_alias = false)
+    def on_text_message(msg, alias_depth = 0)
       sender = @conn.users[msg.actor].name
 
       # Strip noise from the message and extract plaintext.
@@ -120,17 +120,21 @@ class Bot
 
         if self.respond_to? methname
           return self.send(methname, args, sender)
-        elsif not in_alias
+        else
           matches = @db.execute "SELECT action FROM aliases WHERE commandname=?", [args[0]]
 
           if matches.length == 1
-            msg.message = matches[0][0]
-            puts 'Executing alias: %s => %s' % [args[0], msg.message]
-            return self.on_text_message(msg, true)
+            if alias_depth > 16
+              @conn.text_channel_img(Settings.channel, 'res/alias_depth_warning.jpg')
+            else
+              msg.message = matches[0][0]
+              puts 'Executing alias: %s => %s' % [args[0], msg.message]
+              return self.on_text_message(msg, alias_depth + 1)
+            end
           end
-        else
-          @conn.text_user(sender, 'Unknown command %s.' % [args[0]])
         end
+
+        @conn.text_user(sender, 'Unknown command %s.' % [args[0]])
       end
 
       # Grab links if not dispatched into a command.
