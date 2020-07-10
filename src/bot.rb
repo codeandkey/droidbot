@@ -171,6 +171,10 @@ class Bot
       @conn.text_user(sender, "Pong!")
     end
 
+    def handle_lastplayed(args, sender)
+      @conn.text_channel(Settings.channel, "Last played: %s" % [@last_played])
+    end
+
     def handle_alias(args, sender)
       if args.length < 3
         @conn.text_user(sender, "usage: %s [alias] [action]" % [args[0]])
@@ -237,6 +241,7 @@ class Bot
       results = @mpd.where({file: "#{to_play}.mp3"})
 
       if results.length == 1
+        @last_played = to_play
         @mpd.clear
         @mpd.add results[0]
         @mpd.play
