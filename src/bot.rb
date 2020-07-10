@@ -49,6 +49,8 @@ class Bot
     def initialize()
         puts "Initializing bot."
 
+        @last_played = 'none'
+
         printf "Connecting to MPD at %s:%d\n", Settings.mpd_host, Settings.mpd_port
         @mpd = MPD.new Settings.mpd_host, Settings.mpd_port
         @mpd.connect
@@ -289,11 +291,29 @@ class Bot
 
     def handle_delalias(args, sender)
       if args.length != 2
-        @conn.text_user("usage: %s [alias]" % [args[0]])
+        @conn.text_user(sender, "usage: %s [alias]" % [args[0]])
         return
       end
 
-      p @db.execute "DELETE FROM aliases WHERE commandname=?", args[1]
+      @db.execute "DELETE FROM aliases WHERE commandname=?", args[1]
+    end
+
+    def handle_delsound(args, sender)
+      if args.length != 2
+        @conn.text_user(sender, "usage: %s [id]" % [args[0]])
+        return
+      end
+
+      # locate sound
+      results = @db.execute "SELECT * FROM sounds WHERE soundname=?", args[1]
+
+      if results.length != 1
+        @conn.text_user(sender, "%s: sound not found!" % [args[1]])
+        return
+      end
+
+      @db.execute "DELETE FROM sounds WHERE soundname=?", args[1]
+      @conn.text_user(sender, "Deleted sound %s." % [args[1]])
     end
 
     def handle_help(args, sender)
